@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -51,13 +52,6 @@ body{
     margin-bottom:20px;
 }
 
-.input-box label{
-    display:block;
-    margin-bottom:8px;
-    font-weight:600;
-    color:#444;
-}
-
 .input-box input{
     width:100%;
     padding:14px;
@@ -82,23 +76,21 @@ button{
     font-size:16px;
     font-weight:bold;
     cursor:pointer;
-    transition:.3s;
 }
 
 button:hover{
-    transform:translateY(-2px);
+    opacity:.9;
 }
 
 .message{
     margin-top:15px;
     text-align:center;
     font-weight:bold;
-    color:red;
 }
 
-.footer{
+.note{
+    margin-top:15px;
     text-align:center;
-    margin-top:20px;
     color:#888;
     font-size:13px;
 }
@@ -106,6 +98,7 @@ button:hover{
 </style>
 
 </head>
+
 <body>
 
 <div class="login-card">
@@ -119,57 +112,66 @@ Secure Administration Portal
 </p>
 
 <div class="input-box">
-<label>Username</label>
-<input type="text" id="username" placeholder="Enter Username">
+<input
+type="password"
+id="otp"
+placeholder="Enter Admin OTP">
 </div>
 
-<div class="input-box">
-<label>Password</label>
-<input type="password" id="password" placeholder="Enter Password">
-</div>
-
-<button onclick="loginAdmin()">
+<button onclick="verifyOTP()">
 Login
 </button>
 
 <div class="message" id="message"></div>
 
-<div class="footer">
-Joskev Loans Administration Panel
+<div class="note">
+Testing OTP: 123456
 </div>
 
 </div>
 
 <script>
 
-function loginAdmin(){
+async function verifyOTP(){
 
-    const username =
-    document.getElementById("username").value.trim();
-
-    const password =
-    document.getElementById("password").value.trim();
+    const otp =
+    document.getElementById("otp").value.trim();
 
     const message =
     document.getElementById("message");
 
-    if(username === "admin" &&
-       password === "admin123"){
+    if(!otp){
 
-        localStorage.setItem(
-            "adminLoggedIn",
-            "true"
-        );
+        message.innerHTML =
+        "❌ Enter OTP";
+
+        return;
+
+    }
+
+    if(otp !== "123456"){
+
+        message.innerHTML =
+        "❌ Invalid OTP";
+
+        return;
+
+    }
+
+    localStorage.setItem(
+        "adminLoggedIn",
+        "true"
+    );
+
+    message.innerHTML =
+    "✅ Login Successful";
+
+    setTimeout(() => {
 
         window.location.href =
         "admin-dashboard.html";
 
-    }else{
-
-        message.innerHTML =
-        "❌ Invalid Username or Password";
-
-    }
+    },1000);
 
 }
 
