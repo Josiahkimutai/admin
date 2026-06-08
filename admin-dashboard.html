@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Admin Dashboard - Joskev Loans</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:'Segoe UI',sans-serif;
+}
+
+body{
+    background:#f5f5f5;
+}
+
+/* HEADER */
+
+header{
+    background:linear-gradient(135deg,#0f0f0f,#1f1f1f);
+    color:white;
+    padding:20px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.logo{
+    font-size:30px;
+    font-weight:bold;
+    color:#d4af37;
+}
+
+.logout-btn{
+    background:#d4af37;
+    color:white;
+    text-decoration:none;
+    padding:12px 20px;
+    border-radius:10px;
+    font-weight:bold;
+}
+
+.logout-btn:hover{
+    opacity:.9;
+}
+
+/* CONTAINER */
+
+.container{
+    padding:30px;
+}
+
+/* STATS */
+
+.stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:20px;
+    margin-bottom:25px;
+}
+
+.card{
+    background:white;
+    padding:25px;
+    border-radius:15px;
+    box-shadow:0 5px 20px rgba(0,0,0,.08);
+    text-align:center;
+}
+
+.card h2{
+    color:#d4af37;
+    margin-bottom:10px;
+}
+
+.card p{
+    font-size:28px;
+    font-weight:bold;
+}
+
+/* SEARCH */
+
+.search-box{
+    margin-bottom:20px;
+}
+
+.search-box input{
+    width:100%;
+    padding:15px;
+    border:2px solid #d4af37;
+    border-radius:10px;
+    font-size:15px;
+}
+
+/* TABLE */
+
+.table-container{
+    background:white;
+    padding:20px;
+    border-radius:15px;
+    overflow-x:auto;
+    box-shadow:0 5px 20px rgba(0,0,0,.08);
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+th{
+    background:#d4af37;
+    color:white;
+    padding:15px;
+    text-align:left;
+}
+
+td{
+    padding:12px;
+    border-bottom:1px solid #eee;
+}
+
+tr:hover{
+    background:#fafafa;
+}
+
+/* STATUS */
+
+.status-approved{
+    color:green;
+    font-weight:bold;
+}
+
+.status-rejected{
+    color:red;
+    font-weight:bold;
+}
+
+.status-pending{
+    color:orange;
+    font-weight:bold;
+}
+
+/* BUTTONS */
+
+.approve-btn{
+    background:#28a745;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:6px;
+    cursor:pointer;
+    margin-right:5px;
+}
+
+.reject-btn{
+    background:#dc3545;
+    color:white;
+    border:none;
+    padding:8px 12px;
+    border-radius:6px;
+    cursor:pointer;
+}
+
+.approve-btn:hover,
+.reject-btn:hover{
+    opacity:.9;
+}
+
+.loading{
+    text-align:center;
+    font-size:18px;
+    padding:30px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div class="logo">
+👑 JOSKEV ADMIN
+</div>
+
+<a href="#" class="logout-btn" onclick="logoutAdmin()">
+Logout
+</a>
+
+</header>
+
+<div class="container">
+
+<div class="stats">
+
+<div class="card">
+<h2>Total Applications</h2>
+<p id="totalApps">0</p>
+</div>
+
+<div class="card">
+<h2>Verified</h2>
+<p id="verifiedApps">0</p>
+</div>
+
+<div class="card">
+<h2>Pending Loans</h2>
+<p id="pendingApps">0</p>
+</div>
+
+</div>
+
+<div class="search-box">
+<input
+type="text"
+id="searchInput"
+placeholder="🔍 Search customer, phone, email..."
+onkeyup="filterTable()">
+</div>
+
+<div class="table-container">
+
+<div class="loading" id="loading">
+Loading applications...
+</div>
+
+<table id="applicationsTable" style="display:none;">
+
+<thead>
+
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>Phone</th>
+<th>Email</th>
+<th>Amount</th>
+<th>Verified</th>
+<th>Loan Status</th>
+<th>Date Applied</th>
+<th>Actions</th>
+</tr>
+
+</thead>
+
+<tbody id="tableBody">
+</tbody>
+
+</table>
+
+</div>
+
+</div>
+
+<script>
+
+/* LOGIN CHECK */
+
+if(localStorage.getItem("adminLoggedIn") !== "true"){
+    window.location.href = "admin-login.html";
+}
+
+/* SUPABASE */
+
+const supabaseUrl =
+"https://iuzacikghsrvmvlfspgd.supabase.co";
+
+const supabaseKey =
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1emFjaWtnaHNydm12bGZzcGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzExOTIsImV4cCI6MjA5NjQwNzE5Mn0.3IThzg9nUmnzDWUM_Dv7JmIKBO61PHb7O8lcL1tpTUU";
+
+const supabaseClient =
+supabase.createClient(
+    supabaseUrl,
+    supabaseKey
+);
+
+/* LOAD APPLICATIONS */
+
+loadApplications();
+
+async function loadApplications(){
+
+    const { data, error } =
+    await supabaseClient
+    .from("applications")
+    .select("*")
+    .order("id",{ascending:false});
+
+    if(error){
+        console.error(error);
+        alert("Failed to load applications");
+        return;
+    }
+
+    let html = "";
+    let verifiedCount = 0;
+    let pendingCount = 0;
+
+    data.forEach(app => {
+
+        if(app.is_verified){
+            verifiedCount++;
+        }
+
+        if(
+            !app.loan_status ||
+            app.loan_status === "Pending"
+        ){
+            pendingCount++;
+        }
+
+        let statusClass = "status-pending";
+
+        if(app.loan_status === "Approved"){
+            statusClass = "status-approved";
+        }
+
+        if(app.loan_status === "Rejected"){
+            statusClass = "status-rejected";
+        }
+
+        html += `
+        <tr>
+
+        <td>${app.id}</td>
+
+        <td>
+        ${app.first_name || ""}
+        ${app.last_name || ""}
+        </td>
+
+        <td>${app.phone || ""}</td>
+
+        <td>${app.email || ""}</td>
+
+        <td>KES ${app.amount || 0}</td>
+
+        <td>
+        ${app.is_verified ? "✅ Verified" : "❌ Not Verified"}
+        </td>
+
+        <td class="${statusClass}">
+        ${app.loan_status || "Pending"}
+        </td>
+
+        <td>
+        ${new Date(app.created_at).toLocaleDateString()}
+        </td>
+
+        <td>
+
+        <button
+        class="approve-btn"
+        onclick="approveUser('${app.phone}')">
+        Approve
+        </button>
+
+        <button
+        class="reject-btn"
+        onclick="rejectUser('${app.phone}')">
+        Reject
+        </button>
+
+        </td>
+
+        </tr>
+        `;
+    });
+
+    document.getElementById("tableBody").innerHTML = html;
+
+    document.getElementById("totalApps").innerText =
+    data.length;
+
+    document.getElementById("verifiedApps").innerText =
+    verifiedCount;
+
+    document.getElementById("pendingApps").innerText =
+    pendingCount;
+
+    document.getElementById("loading").style.display =
+    "none";
+
+    document.getElementById("applicationsTable").style.display =
+    "table";
+}
+
+/* APPROVE */
+
+async function approveUser(phone){
+
+    const { error } =
+    await supabaseClient
+    .from("applications")
+    .update({
+        loan_status:"Approved"
+    })
+    .eq("phone",phone);
+
+    if(error){
+        alert("Failed to approve application");
+        return;
+    }
+
+    alert("Application Approved");
+    loadApplications();
+}
+
+/* REJECT */
+
+async function rejectUser(phone){
+
+    const { error } =
+    await supabaseClient
+    .from("applications")
+    .update({
+        loan_status:"Rejected"
+    })
+    .eq("phone",phone);
+
+    if(error){
+        alert("Failed to reject application");
+        return;
+    }
+
+    alert("Application Rejected");
+    loadApplications();
+}
+
+/* SEARCH */
+
+function filterTable(){
+
+    const search =
+    document.getElementById("searchInput")
+    .value
+    .toLowerCase();
+
+    const rows =
+    document.querySelectorAll("#tableBody tr");
+
+    rows.forEach(row => {
+
+        if(
+            row.innerText
+            .toLowerCase()
+            .includes(search)
+        ){
+            row.style.display = "";
+        }else{
+            row.style.display = "none";
+        }
+
+    });
+
+}
+
+/* LOGOUT */
+
+function logoutAdmin(){
+
+    localStorage.removeItem("adminLoggedIn");
+
+    window.location.href =
+    "admin-login.html";
+
+}
+
+</script>
+
+</body>
+</html>
