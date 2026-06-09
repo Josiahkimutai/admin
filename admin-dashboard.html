@@ -53,7 +53,7 @@ td{padding:10px;border-bottom:1px solid #eee}
 <select id="statusFilter" onchange="filterTable()">
 <option value="">All Statuses</option>
 <option>Pending</option>
-<option>Approved</option>
+<option>Waiting Disbursement</option>
 <option>Rejected</option>
 </select>
 <button class="btn" onclick="loadApplications()">Refresh</button>
@@ -98,7 +98,10 @@ async function loadApplications(){
 
  document.getElementById("totalApps").innerText=applications.length;
  document.getElementById("verifiedApps").innerText=applications.filter(x=>x.is_verified).length;
- document.getElementById("approvedApps").innerText=applications.filter(x=>x.loan_status==="Approved").length;
+ document.getElementById("approvedApps").innerText=
+applications.filter(
+x=>x.loan_status==="Waiting Disbursement"
+).length;
  document.getElementById("rejectedApps").innerText=applications.filter(x=>x.loan_status==="Rejected").length;
 
  renderTable(applications);
@@ -107,7 +110,9 @@ async function loadApplications(){
 function renderTable(rows){
  let html="";
  rows.forEach(app=>{
- let cls=(app.loan_status||"Pending").toLowerCase();
+let cls=(app.loan_status||"Pending")
+.replace(/\s+/g,"-")
+.toLowerCase();
  html+=`<tr>
  <td>${app.id}</td>
  <td>${app.first_name||""} ${app.last_name||""}</td>
@@ -115,10 +120,12 @@ function renderTable(rows){
  <td>${app.email||""}</td>
  <td>KES ${app.amount||0}</td>
  <td>${app.is_verified?"✅":"❌"}</td>
- <td class="status-${cls}">${app.loan_status||"Pending"}</td>
+<td class="status-${cls}">
+${app.loan_status||"Pending"}
+</td>
  <td>${new Date(app.created_at).toLocaleDateString()}</td>
  <td>
- <button class="action approve" onclick="updateStatus('${app.phone}','Approved')">Approve</button>
+ <button class="action approve" onclick="updateStatus('${app.phone}','Waiting Disbursement')">Approve</button>
  <button class="action reject" onclick="updateStatus('${app.phone}','Rejected')">Reject</button>
  <button class="action delete" onclick="deleteApp('${app.phone}')">Delete</button>
  <button class="action" style="background:#007bff" onclick='viewDetails(${JSON.stringify(app)})'>View</button>
@@ -169,6 +176,29 @@ function logoutAdmin(){
 }
 
 loadApplications();
+async function updateStatus(phone,status){
+
+    console.log("Updating:", phone, status);
+
+    const { data, error } = await supabaseClient
+        .from("applications")
+        .update({
+            loan_status: status
+        })
+        .eq("phone", phone);
+
+    console.log("DATA:", data);
+    console.log("ERROR:", error);
+
+    if(error){
+        alert("Error: " + error.message);
+        return;
+    }
+
+    alert("Status updated successfully");
+
+    loadApplications();
+}
 </script>
 </body>
 </html>
