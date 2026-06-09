@@ -92,113 +92,276 @@ const supabaseClient=supabase.createClient(supabaseUrl,supabaseKey);
 let applications=[];
 
 async function loadApplications(){
- const {data,error}=await supabaseClient.from("applications").select("*").order("id",{ascending:false});
- if(error){alert(error.message);return;}
- applications=data||[];
 
- document.getElementById("totalApps").innerText=applications.length;
- document.getElementById("verifiedApps").innerText=applications.filter(x=>x.is_verified).length;
- document.getElementById("approvedApps").innerText=
+const {data,error}=await supabaseClient
+.from("applications")
+.select("*")
+.order("id",{ascending:false});
+
+if(error){
+alert(error.message);
+return;
+}
+
+applications=data||[];
+
+document.getElementById("totalApps").innerText=
+applications.length;
+
+document.getElementById("verifiedApps").innerText=
+applications.filter(x=>x.is_verified).length;
+
+document.getElementById("approvedApps").innerText=
 applications.filter(
 x=>x.loan_status==="Waiting Disbursement"
 ).length;
- document.getElementById("rejectedApps").innerText=applications.filter(x=>x.loan_status==="Rejected").length;
 
- renderTable(applications);
+document.getElementById("rejectedApps").innerText=
+applications.filter(
+x=>x.loan_status==="Rejected"
+).length;
+
+renderTable(applications);
 }
 
 function renderTable(rows){
- let html="";
- rows.forEach(app=>{
+
+let html="";
+
+rows.forEach(app=>{
+
 let cls=(app.loan_status||"Pending")
 .replace(/\s+/g,"-")
 .toLowerCase();
- html+=`<tr>
+
+html+=`
+
+ <tr>
+
  <td>${app.id}</td>
- <td>${app.first_name||""} ${app.last_name||""}</td>
- <td>${app.phone||""}</td>
- <td>${app.email||""}</td>
- <td>KES ${app.amount||0}</td>
- <td>${app.is_verified?"✅":"❌"}</td>
-<td class="status-${cls}">
-${app.loan_status||"Pending"}
-</td>
- <td>${new Date(app.created_at).toLocaleDateString()}</td>
+
  <td>
- <button class="action approve" onclick="updateStatus('${app.phone}','Waiting Disbursement')">Approve</button>
- <button class="action reject" onclick="updateStatus('${app.phone}','Rejected')">Reject</button>
- <button class="action delete" onclick="deleteApp('${app.phone}')">Delete</button>
- <button class="action" style="background:#007bff" onclick='viewDetails(${JSON.stringify(app)})'>View</button>
- </td></tr>`;
+ ${app.first_name||""}
+ ${app.last_name||""}
+ </td>
+
+ <td>${app.phone||""}</td>
+
+ <td>${app.email||""}</td>
+
+ <td>KES ${app.amount||0}</td>
+
+ <td>
+ ${app.is_verified?"✅":"❌"}
+ </td>
+
+ <td class="status-${cls}">
+ ${app.loan_status||"Pending"}
+ </td>
+
+ <td>
+ ${new Date(app.created_at)
+ .toLocaleDateString()}
+ </td>
+
+ <td>
+
+<button
+class="action approve"
+onclick="updateStatus(
+'${app.phone}',
+'Waiting Disbursement',
+'${app.email}',
+'${app.first_name}'
+)">
+Approve </button>
+
+<button
+class="action reject"
+onclick="updateStatus(
+'${app.phone}',
+'Rejected',
+'${app.email}',
+'${app.first_name}'
+)">
+Reject </button>
+
+<button
+class="action delete"
+onclick="deleteApp(
+'${app.phone}'
+)">
+Delete </button>
+
+<button
+class="action"
+style="background:#007bff"
+onclick='viewDetails(${JSON.stringify(app)})'>
+View </button>
+
+ </td>
+
+ </tr>`;
  });
- document.getElementById("tableBody").innerHTML=html;
+
+document.getElementById(
+"tableBody"
+).innerHTML=html;
 }
 
 function filterTable(){
- const q=document.getElementById("search").value.toLowerCase();
- const st=document.getElementById("statusFilter").value;
- const filtered=applications.filter(a=>{
-   const txt=JSON.stringify(a).toLowerCase();
-   const ok1=txt.includes(q);
-   const ok2=!st || (a.loan_status||"Pending")===st;
-   return ok1 && ok2;
- });
- renderTable(filtered);
+
+const q=
+document.getElementById("search")
+.value.toLowerCase();
+
+const st=
+document.getElementById("statusFilter")
+.value;
+
+const filtered=
+applications.filter(a=>{
+
+const txt=
+JSON.stringify(a)
+.toLowerCase();
+
+const ok1=
+txt.includes(q);
+
+const ok2=
+!st ||
+(a.loan_status||"Pending")===st;
+
+return ok1 && ok2;
+
+});
+
+renderTable(filtered);
 }
 
-async function updateStatus(phone,status){
- await supabaseClient.from("applications").update({loan_status:status}).eq("phone",phone);
- loadApplications();
+async function updateStatus(
+phone,
+status,
+email,
+firstName
+){
+
+const { error } =
+await supabaseClient
+.from("applications")
+.update({
+loan_status:status
+})
+.eq("phone",phone);
+
+if(error){
+alert(error.message);
+return;
+}
+
+if(
+status==="Waiting Disbursement"
+){
+
+try{
+
+await fetch(
+"https://iuzacikghsrvmvlfspgd.supabase.co/functions/v1/send-loan-email",
+{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body:JSON.stringify({
+email:email,
+first_name:firstName
+})
+}
+);
+
+}catch(err){
+
+console.log(err);
+
+}
+
+}
+
+alert("Status updated successfully");
+
+loadApplications();
 }
 
 async function deleteApp(phone){
- if(!confirm("Delete application?")) return;
- await supabaseClient.from("applications").delete().eq("phone",phone);
- loadApplications();
+
+if(!confirm(
+"Delete application?"
+)) return;
+
+await supabaseClient
+.from("applications")
+.delete()
+.eq("phone",phone);
+
+loadApplications();
 }
 
 function viewDetails(app){
- document.getElementById("details").innerHTML=`
- <p><b>Name:</b> ${app.first_name||""} ${app.last_name||""}</p>
- <p><b>Phone:</b> ${app.phone||""}</p>
- <p><b>Email:</b> ${app.email||""}</p>
- <p><b>Amount:</b> KES ${app.amount||0}</p>
- <p><b>Verified:</b> ${app.is_verified}</p>
- <p><b>Status:</b> ${app.loan_status||"Pending"}</p>`;
- document.getElementById("modal").style.display="block";
+
+document.getElementById(
+"details"
+).innerHTML=`
+
+ <p><b>Name:</b>
+ ${app.first_name||""}
+ ${app.last_name||""}
+ </p>
+
+ <p><b>Phone:</b>
+ ${app.phone||""}
+ </p>
+
+ <p><b>Email:</b>
+ ${app.email||""}
+ </p>
+
+ <p><b>Amount:</b>
+ KES ${app.amount||0}
+ </p>
+
+ <p><b>Verified:</b>
+ ${app.is_verified}
+ </p>
+
+ <p><b>Status:</b>
+ ${app.loan_status||"Pending"}
+ </p>
+ `;
+
+document.getElementById(
+"modal"
+).style.display="block";
 }
 
-function closeModal(){document.getElementById("modal").style.display="none";}
+function closeModal(){
+
+document.getElementById(
+"modal"
+).style.display="none";
+}
 
 function logoutAdmin(){
- localStorage.removeItem("adminLoggedIn");
- window.location.href="index.html";
+
+localStorage.removeItem(
+"adminLoggedIn"
+);
+
+window.location.href=
+"index.html";
 }
 
 loadApplications();
-async function updateStatus(phone,status){
-
-    console.log("Updating:", phone, status);
-
-    const { data, error } = await supabaseClient
-        .from("applications")
-        .update({
-            loan_status: status
-        })
-        .eq("phone", phone);
-
-    console.log("DATA:", data);
-    console.log("ERROR:", error);
-
-    if(error){
-        alert("Error: " + error.message);
-        return;
-    }
-
-    alert("Status updated successfully");
-
-    loadApplications();
-}
 </script>
 </body>
 </html>
