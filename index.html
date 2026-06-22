@@ -1,14 +1,11 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Admin Login - Joskev Loans</title>
+<title>Joskev Admin Portal</title>
 
 <style>
-
 *{
     margin:0;
     padding:0;
@@ -16,165 +13,400 @@
     font-family:'Segoe UI',sans-serif;
 }
 
+:root{
+    --bg1:#050816;
+    --bg2:#0b1220;
+    --bg3:#101827;
+    --card:#ffffff;
+    --text:#111827;
+    --muted:#64748b;
+    --gold:#d4af37;
+    --gold2:#b8860b;
+    --line:#e2e8f0;
+    --dark:#0f172a;
+}
+
 body{
     min-height:100vh;
     display:flex;
     justify-content:center;
     align-items:center;
-    background:linear-gradient(135deg,#0f0f0f,#1f1f1f);
+    background:
+        radial-gradient(circle at top left, rgba(212,175,55,.08), transparent 28%),
+        radial-gradient(circle at bottom right, rgba(212,175,55,.08), transparent 30%),
+        linear-gradient(135deg,var(--bg1),var(--bg2),var(--bg3));
+    overflow:hidden;
+    position:relative;
+    padding:20px;
+}
+
+/* FADED LOGO BACKGROUND */
+body::before{
+    content:"JOSKEV";
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:180px;
+    font-weight:900;
+    letter-spacing:18px;
+    color:rgba(212,175,55,.05);
+    transform:rotate(-18deg);
+    user-select:none;
+    pointer-events:none;
+    white-space:nowrap;
+}
+
+body::after{
+    content:"🔒";
+    position:absolute;
+    top:8%;
+    right:7%;
+    font-size:180px;
+    color:rgba(255,255,255,.03);
+    transform:rotate(15deg);
+    pointer-events:none;
+}
+
+.login-shell{
+    width:100%;
+    max-width:460px;
+    position:relative;
+    z-index:2;
+}
+
+.security-badge{
+    width:max-content;
+    margin:0 auto 14px;
+    background:rgba(255,255,255,.08);
+    color:#e5e7eb;
+    border:1px solid rgba(255,255,255,.12);
+    padding:10px 16px;
+    border-radius:999px;
+    font-size:13px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    backdrop-filter:blur(10px);
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
 }
 
 .login-card{
     width:100%;
-    max-width:420px;
-    background:white;
-    padding:40px;
-    border-radius:20px;
-    box-shadow:0 15px 40px rgba(212,175,55,.3);
-    border-top:5px solid #d4af37;
+    background:rgba(255,255,255,.98);
+    border-radius:28px;
+    padding:34px 28px 26px;
+    box-shadow:
+        0 30px 60px rgba(0,0,0,.45),
+        0 10px 20px rgba(212,175,55,.08);
+    position:relative;
+    overflow:hidden;
+    border:1px solid rgba(255,255,255,.65);
+}
+
+.login-card::before{
+    content:"";
+    position:absolute;
+    top:0;
+    left:0;
+    right:0;
+    height:5px;
+    background:linear-gradient(90deg,var(--gold),#f7d96b,var(--gold2));
+}
+
+.login-card::after{
+    content:"";
+    position:absolute;
+    width:180px;
+    height:180px;
+    border-radius:50%;
+    background:radial-gradient(circle, rgba(212,175,55,.12), transparent 70%);
+    top:-60px;
+    right:-60px;
+    pointer-events:none;
+}
+
+.logo-wrap{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    margin-bottom:22px;
+    position:relative;
+    z-index:2;
+}
+
+.logo-badge{
+    width:76px;
+    height:76px;
+    border-radius:22px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    background:linear-gradient(135deg,var(--gold),#f7d96b,var(--gold2));
+    color:#111827;
+    font-size:34px;
+    font-weight:900;
+    box-shadow:0 15px 35px rgba(212,175,55,.28);
+    margin-bottom:14px;
 }
 
 .logo{
-    text-align:center;
-    font-size:32px;
-    font-weight:bold;
-    color:#d4af37;
-    margin-bottom:10px;
+    font-size:28px;
+    font-weight:900;
+    color:#111827;
+    letter-spacing:.8px;
 }
 
 .subtitle{
+    color:var(--muted);
+    font-size:14px;
+    margin-top:6px;
     text-align:center;
-    color:#666;
-    margin-bottom:30px;
+}
+
+.role-switch{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    background:#f1f5f9;
+    padding:6px;
+    border-radius:16px;
+    margin:22px 0 18px;
+    position:relative;
+    z-index:2;
+}
+
+.role-btn{
+    border:none;
+    padding:13px 12px;
+    border-radius:12px;
+    cursor:pointer;
+    font-weight:800;
+    font-size:14px;
+    background:transparent;
+    color:#475569;
+    transition:.25s ease;
+}
+
+.role-btn.active{
+    background:linear-gradient(135deg,var(--gold),var(--gold2));
+    color:#fff;
+    box-shadow:0 10px 24px rgba(212,175,55,.25);
+}
+
+.role-label{
+    text-align:center;
+    margin-bottom:18px;
+    font-size:14px;
+    color:#334155;
+    font-weight:700;
+    background:#f8fafc;
+    border:1px solid #eef2f7;
+    padding:12px 14px;
+    border-radius:14px;
+    position:relative;
+    z-index:2;
 }
 
 .input-box{
-    margin-bottom:20px;
+    margin-bottom:16px;
+    position:relative;
+    z-index:2;
+}
+
+.input-box label{
+    display:block;
+    font-size:13px;
+    font-weight:800;
+    color:#334155;
+    margin-bottom:8px;
 }
 
 .input-box input{
     width:100%;
-    padding:14px;
-    border:1px solid #ddd;
-    border-radius:10px;
+    padding:15px 16px;
+    border:1px solid #dbe2ea;
+    border-radius:14px;
     font-size:15px;
+    background:#fff;
+    transition:.2s ease;
 }
 
 .input-box input:focus{
     outline:none;
-    border-color:#d4af37;
-    box-shadow:0 0 10px rgba(212,175,55,.4);
+    border-color:var(--gold);
+    box-shadow:0 0 0 4px rgba(212,175,55,.15);
 }
 
-button{
+.login-btn{
     width:100%;
     padding:15px;
     border:none;
-    border-radius:10px;
-    background:linear-gradient(135deg,#d4af37,#b8860b);
-    color:white;
+    border-radius:16px;
+    background:linear-gradient(135deg,#0f172a,#1f2937);
+    color:#fff;
     font-size:16px;
-    font-weight:bold;
+    font-weight:800;
     cursor:pointer;
+    transition:.25s ease;
+    position:relative;
+    z-index:2;
 }
 
-button:hover{
-    opacity:.9;
+.login-btn:hover{
+    transform:translateY(-1px);
+    box-shadow:0 14px 28px rgba(15,23,42,.18);
 }
 
 .message{
-    margin-top:15px;
+    margin-top:16px;
     text-align:center;
-    font-weight:bold;
+    font-weight:800;
+    min-height:22px;
+    font-size:14px;
+    position:relative;
+    z-index:2;
 }
 
 .note{
-    margin-top:15px;
+    margin-top:14px;
     text-align:center;
-    color:#888;
-    font-size:13px;
+    color:#94a3b8;
+    font-size:12px;
+    position:relative;
+    z-index:2;
 }
 
+.note span{
+    color:#111827;
+    font-weight:800;
+}
+
+.corner-lock{
+    position:absolute;
+    bottom:14px;
+    right:16px;
+    color:#cbd5e1;
+    font-size:18px;
+    z-index:2;
+}
+
+@media(max-width:520px){
+    body::before{
+        font-size:90px;
+        letter-spacing:8px;
+    }
+
+    .login-card{
+        padding:28px 20px 22px;
+        border-radius:22px;
+    }
+
+    .logo{
+        font-size:24px;
+    }
+}
 </style>
-
 </head>
-
 <body>
 
-<div class="login-card">
+<div class="login-shell">
 
-<div class="logo">
-👑 JOSKEV ADMIN
-</div>
+    <div class="security-badge">
+        🔒 Secure Administrative Access
+    </div>
 
-<p class="subtitle">
-Secure Administration Portal
-</p>
+    <div class="login-card">
 
-<div class="input-box">
-<input
-type="password"
-id="otp"
-placeholder="Enter Admin OTP">
-</div>
+        <div class="logo-wrap">
+            <div class="logo-badge">J</div>
+            <div class="logo">JOSKEV ADMIN</div>
+            <div class="subtitle">Protected Operations Portal</div>
+        </div>
 
-<button onclick="verifyOTP()">
-Login
-</button>
+        <div class="role-switch">
+            <button class="role-btn active" id="normalBtn" onclick="setRole('normal')">Normal Admin</button>
+            <button class="role-btn" id="chiefBtn" onclick="setRole('chief')">Chief Admin</button>
+        </div>
 
-<div class="message" id="message"></div>
+        <div class="role-label" id="roleLabel">Normal Admin Portal</div>
 
-<div class="note">
-Testing OTP: 123456
-</div>
+        <div class="input-box">
+            <label for="otp">Admin OTP</label>
+            <input type="password" id="otp" placeholder="Enter secure access code">
+        </div>
 
+        <button class="login-btn" onclick="verifyOTP()">Login</button>
+
+        <div class="message" id="message"></div>
+
+        <div class="note">Testing OTP: <span>123456</span></div>
+
+        <div class="corner-lock">🛡️</div>
+    </div>
 </div>
 
 <script>
+let selectedRole = "normal";
 
-async function verifyOTP(){
+function setRole(role){
+    selectedRole = role;
 
-    const otp =
-    document.getElementById("otp").value.trim();
+    const normalBtn = document.getElementById("normalBtn");
+    const chiefBtn = document.getElementById("chiefBtn");
+    const roleLabel = document.getElementById("roleLabel");
+    const message = document.getElementById("message");
 
-    const message =
-    document.getElementById("message");
+    message.innerHTML = "";
+
+    if(role === "normal"){
+        normalBtn.classList.add("active");
+        chiefBtn.classList.remove("active");
+        roleLabel.innerText = "Normal Admin Portal";
+    }else{
+        chiefBtn.classList.add("active");
+        normalBtn.classList.remove("active");
+        roleLabel.innerText = "Chief Admin Portal";
+    }
+}
+
+function verifyOTP(){
+    const otp = document.getElementById("otp").value.trim();
+    const message = document.getElementById("message");
 
     if(!otp){
-
-        message.innerHTML =
-        "❌ Enter OTP";
-
+        message.style.color = "#dc2626";
+        message.innerHTML = "❌ Enter OTP";
         return;
-
     }
 
     if(otp !== "123456"){
-
-        message.innerHTML =
-        "❌ Invalid OTP";
-
+        message.style.color = "#dc2626";
+        message.innerHTML = "❌ Invalid OTP";
         return;
-
     }
 
-    localStorage.setItem(
-        "adminLoggedIn",
-        "true"
-    );
+    message.style.color = "#16a34a";
+    message.innerHTML = "✅ Login successful";
 
-    message.innerHTML =
-    "✅ Login Successful";
+    if(selectedRole === "normal"){
+        localStorage.setItem("adminLoggedIn","true");
+        localStorage.removeItem("chiefAdminLoggedIn");
 
-    setTimeout(() => {
+        setTimeout(() => {
+            window.location.href = "admin-dashboard.html";
+        }, 800);
+    } else {
+        localStorage.setItem("chiefAdminLoggedIn","true");
+        localStorage.removeItem("adminLoggedIn");
 
-        window.location.href =
-        "admin-dashboard.html";
-
-    },1000);
-
+        setTimeout(() => {
+            window.location.href = "chief-admin.html";
+        }, 800);
+    }
 }
-
 </script>
 
 </body>
