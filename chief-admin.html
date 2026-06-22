@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joskev Finance Admin</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+*{margin:0;padding:0;box-sizing:border-box;font-family:Segoe UI,sans-serif;}
+
+body{background:#07101f;color:#e5e7eb;}
+
+header{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:14px 18px;
+background:#0b1b33;
+border-bottom:1px solid #1f2a44;
+position:sticky;
+top:0;
+}
+
+.logo{font-size:18px;font-weight:bold;color:#60a5fa;}
+.live{color:#22c55e;font-size:12px;margin-left:8px;}
+
+.btn{
+background:#60a5fa;
+border:none;
+padding:8px 12px;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+color:#07101f;
+margin-left:6px;
+}
+
+.container{padding:18px;}
+
+.grid{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+gap:10px;
+margin-bottom:12px;
+}
+
+.card{
+background:#0b1b33;
+padding:10px;
+border-radius:10px;
+border:1px solid #1f2a44;
+}
+
+.card h3{font-size:11px;color:#94a3b8;}
+.card p{font-size:16px;font-weight:bold;margin-top:4px;}
+
+.searchbar{
+display:flex;
+gap:10px;
+margin-bottom:12px;
+flex-wrap:wrap;
+}
+
+input{
+flex:1;
+padding:10px;
+border-radius:8px;
+border:1px solid #1f2a44;
+background:#0b1b33;
+color:#fff;
+}
+
+.table{
+background:#0b1b33;
+padding:10px;
+border-radius:10px;
+border:1px solid #1f2a44;
+overflow:auto;
+margin-bottom:15px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+min-width:800px;
+}
+
+th{
+background:#12233f;
+padding:8px;
+font-size:11px;
+text-align:left;
+}
+
+td{
+padding:8px;
+border-bottom:1px solid #1f2a44;
+font-size:12px;
+}
+
+.good{color:#22c55e;font-weight:bold;}
+.bad{color:#ef4444;font-weight:bold;}
+.warn{color:#f59e0b;font-weight:bold;}
+
+.charts{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+margin-bottom:12px;
+}
+
+.box{
+background:#0b1b33;
+padding:8px;
+border-radius:10px;
+border:1px solid #1f2a44;
+height:160px;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+<div>
+<div class="logo">🏦 JOSKEV FINANCE ADMIN</div>
+<span class="live">🟢 LIVE</span>
+</div>
+
+<div>
+<button class="btn" onclick="manualRefresh()">Refresh</button>
+<button class="btn" onclick="logout()">Logout</button>
+</div>
+</header>
+
+<div class="container">
+
+<!-- STATS -->
+<div class="grid">
+<div class="card"><h3>Total Loans</h3><p id="loans">0</p></div>
+<div class="card"><h3>Loan Value</h3><p id="loanValue">0</p></div>
+<div class="card"><h3>Payments</h3><p id="payments">0</p></div>
+<div class="card"><h3>Received</h3><p id="payValue">0</p></div>
+<div class="card"><h3>Profit</h3><p id="profit">0</p></div>
+<div class="card"><h3>Active Loans</h3><p id="active">0</p></div>
+</div>
+
+<!-- CHARTS -->
+<div class="charts">
+<div class="box"><canvas id="loanChart"></canvas></div>
+<div class="box"><canvas id="payChart"></canvas></div>
+</div>
+
+<!-- SEARCH -->
+<div class="searchbar">
+<input id="loanSearch" placeholder="Search applications..." oninput="resumeLive(); searchLoans();">
+<input id="paySearch" placeholder="Search payments..." oninput="resumeLive(); searchPayments();">
+</div>
+
+<!-- LOANS -->
+<div class="table">
+<h3 style="color:#60a5fa;">📄 Applications</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th><th>Name</th><th>Phone</th><th>Amount</th><th>Status</th><th>Date</th>
+</tr>
+</thead>
+<tbody id="loanBody"></tbody>
+</table>
+</div>
+
+<!-- PAYMENTS -->
+<div class="table">
+<h3 style="color:#60a5fa;">💳 Payments</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th><th>Name</th><th>Phone</th><th>Amount</th><th>Status</th><th>Receipt</th>
+</tr>
+</thead>
+<tbody id="payBody"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+
+const supabaseUrl="https://iuzacikghsrvmvlfspgd.supabase.co";
+const supabaseKey="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml1emFjaWtnaHNydm12bGZzcGdkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4MzExOTIsImV4cCI6MjA5NjQwNzE5Mn0.3IThzg9nUmnzDWUM_Dv7JmIKBO61PHb7O8lcL1tpTUU";
+const supabaseClient=supabase.createClient(supabaseUrl,supabaseKey);
+
+let loans=[], payments=[];
+let isSearching=false;
+let liveMode=true;
+
+/* CLEAN PHONE */
+function cleanPhone(p){
+return (p||"").toString().replace(/\s/g,"").replace("+","");
+}
+
+/* LOAD */
+async function load(){
+
+const l = await supabaseClient.from("applications").select("*");
+const p = await supabaseClient.from("payments").select("*");
+
+loans = (l.data || []).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+payments = (p.data || []).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+
+render();
+stats();
+charts();
+
+}
+
+/* SILENT LIVE UPDATE */
+async function liveSync(){
+
+if(!liveMode || isSearching) return;
+
+const l = await supabaseClient.from("applications").select("*");
+const p = await supabaseClient.from("payments").select("*");
+
+loans = (l.data || []).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+payments = (p.data || []).sort((a,b)=>new Date(b.created_at||0)-new Date(a.created_at||0));
+
+render();
+stats();
+charts();
+
+}
+
+/* STATS */
+function stats(){
+
+const loanValue = loans.reduce((s,l)=>s+Number(l.amount||0),0);
+const payValue = payments
+.filter(p=>p.status==="SUCCESS")
+.reduce((s,p)=>s+Number(p.amount||0),0);
+
+document.getElementById("loans").innerText = loans.length;
+document.getElementById("payments").innerText = payments.length;
+document.getElementById("loanValue").innerText = "KES " + loanValue.toLocaleString();
+document.getElementById("payValue").innerText = "KES " + payValue.toLocaleString();
+document.getElementById("profit").innerText = "KES " + (payValue-loanValue).toLocaleString();
+
+document.getElementById("active").innerText =
+loans.filter(l=>l.loan_status==="Waiting Disbursement").length;
+
+}
+
+/* RENDER */
+function render(){
+
+/* LOANS */
+let a="";
+loans.forEach(l=>{
+a+=`
+<tr>
+<td>${l.id}</td>
+<td>${l.first_name||""} ${l.last_name||""}</td>
+<td>${l.phone}</td>
+<td>KES ${l.amount}</td>
+<td class="${l.loan_status==="Rejected"?"bad":l.loan_status==="Waiting Disbursement"?"good":"warn"}">
+${l.loan_status}
+</td>
+<td>${new Date(l.created_at).toLocaleDateString()}</td>
+</tr>`;
+});
+document.getElementById("loanBody").innerHTML=a;
+
+/* PAYMENTS (NAME FIX) */
+let b="";
+
+payments.forEach(p=>{
+
+const match = loans.find(l=>cleanPhone(l.phone)===cleanPhone(p.phone));
+
+const name = match
+? `${match.first_name||""} ${match.last_name||""}`
+: "Unknown";
+
+b+=`
+<tr>
+<td>${p.id}</td>
+<td>${name}</td>
+<td>${p.phone}</td>
+<td>KES ${p.amount}</td>
+<td class="${p.status==="SUCCESS"?"good":"bad"}">${p.status}</td>
+<td>${p.mpesa_receipt||"-"}</td>
+</tr>`;
+});
+
+document.getElementById("payBody").innerHTML=b;
+
+}
+
+/* CHARTS */
+function charts(){
+
+if(window.c1) window.c1.destroy();
+if(window.c2) window.c2.destroy();
+
+window.c1 = new Chart(document.getElementById("loanChart"),{
+type:"doughnut",
+data:{
+labels:["Loans","Active"],
+datasets:[{
+data:[
+loans.length,
+loans.filter(l=>l.loan_status==="Waiting Disbursement").length
+]
+}]
+}
+});
+
+window.c2 = new Chart(document.getElementById("payChart"),{
+type:"bar",
+data:{
+labels:["Loans","Payments"],
+datasets:[{
+data:[loans.length,payments.length],
+backgroundColor:["#60a5fa","#22c55e"]
+}]
+}
+});
+
+}
+
+/* SEARCH */
+function searchLoans(){
+isSearching=true;
+const q=document.getElementById("loanSearch").value.toLowerCase();
+
+const f=loans.filter(l=>JSON.stringify(l).toLowerCase().includes(q));
+
+renderLoans(f);
+}
+
+function renderLoans(data){
+let a="";
+data.forEach(l=>{
+a+=`
+<tr>
+<td>${l.id}</td>
+<td>${l.first_name||""} ${l.last_name||""}</td>
+<td>${l.phone}</td>
+<td>KES ${l.amount}</td>
+<td>${l.loan_status}</td>
+<td>${new Date(l.created_at).toLocaleDateString()}</td>
+</tr>`;
+});
+document.getElementById("loanBody").innerHTML=a;
+}
+
+/* PAY SEARCH */
+function searchPayments(){
+isSearching=true;
+const q=document.getElementById("paySearch").value.toLowerCase();
+
+const f=payments.filter(p=>JSON.stringify(p).toLowerCase().includes(q));
+
+renderPayments(f);
+}
+
+function renderPayments(data){
+
+let b="";
+
+data.forEach(p=>{
+
+const match = loans.find(l=>cleanPhone(l.phone)===cleanPhone(p.phone));
+
+const name = match
+? `${match.first_name||""} ${match.last_name||""}`
+: "Unknown";
+
+b+=`
+<tr>
+<td>${p.id}</td>
+<td>${name}</td>
+<td>${p.phone}</td>
+<td>KES ${p.amount}</td>
+<td>${p.status}</td>
+<td>${p.mpesa_receipt||"-"}</td>
+</tr>`;
+});
+
+document.getElementById("payBody").innerHTML=b;
+}
+
+/* RESUME LIVE */
+function resumeLive(){
+isSearching=false;
+}
+
+/* LOGOUT */
+function logout(){
+localStorage.removeItem("adminLoggedIn");
+window.location.href="index.html";
+}
+
+/* MANUAL */
+async function manualRefresh(){
+await load();
+alert("Updated");
+}
+
+/* START */
+load();
+setInterval(liveSync,4000);
+
+</script>
+
+</body>
+</html>
